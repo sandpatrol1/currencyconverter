@@ -4,7 +4,7 @@ Use this Google App Script to get current exhange rate and historical exchange r
 To start you will need an API key from  https://currencylayer.com/ it's free for the
 services supported on this script up to 250 calls a month.
 Insert you API key in in apiKey
-Get live data invoke convertUSD with arguments for currency and live convertUSD('ils', 'live')
+Get live data invoke getLiveUSD with arguments for currency and live getLiveUSD('ils', 'live')
 Get historical data invoke arguments for years of data from 2001-01-01 going forward base number of years and currency
 runLoopHistorical(19, 'ils')
 Create a sheet called #data the historical data will be inserted here. Notice all data in #data sheet is cleared when
@@ -14,37 +14,53 @@ runLoopHistorical() is invoked.
 
 const apiKey = 'xxx123';
 const baseCall = 'http://api.currencylayer.com/';
-const dataArr = [];
+const dataArrLive = [];
+const dataArrHist = [];
 
-// function convert both live and historical currency data on USD to one other currency 
-const convertUSD = (cur, time, date) => {
-  const response = date !== '' ? UrlFetchApp.fetch(baseCall + time +'?' + 'access_key=' + apiKey  + '&date=' + date + '&currencies=' + cur)
-  : UrlFetchApp.fetch(baseCall + time +'?' + 'access_key=' + apiKey + '&currencies=' + cur);
+// function convert both live currency data on USD to one other currency 
+const getLiveUSD = (cur) => {
+  const response = UrlFetchApp.fetch(baseCall + 'live' +'?' + 'access_key=' + apiKey + '&currencies=' + cur);
   const json = JSON.parse(response);
   data(json, cur);
-  return dataArr;
+  console.log(dataArrLive);
+  return dataArrLive;
 }
 
-// function to push data into dataArr array
-const data = ({success, timestamp, source, historical, date, quotes}, cur) => {
+// function to insert data in dataArr for both live and hist
+const data = ({success, timestamp, source, historical, date, quotes}, cur) => {             
   if (historical === true) {
-    dataArr.push([timestamp, source, date, quotes[(source + cur).toUpperCase()]]);
+    dataArrHist.push([timestamp, source, date, quotes[(source + cur).toUpperCase()]]);
+    return dataArrHist;
   }
-  else dataArr.push([timestamp, source, quotes[(source + cur).toUpperCase()]]);
-  return dataArr;
+  else dataArrLive.push([timestamp, source, quotes[(source + cur).toUpperCase()]]);
+  return dataArrLive;
 }
 
-// function to get historical currency data from 2001 and years going forward until base is reached, insert currency as second argument
-const runLoopHistorical = (base, cur) => {
-  for (let i = 0; i < base; i++) {
-    convertUSD(cur, 'historical', 2001 + i + '-01-01');
-  }           
-  insertData(dataArr);
+// function convert historical currency data on USD to one other currency                
+const getHistUSD = (cur, date) => {
+  const response = UrlFetchApp.fetch(baseCall + 'historical' +'?' + 'access_key=' + apiKey  + '&date=' + date + '&currencies=' + cur);
+  const json = JSON.parse(response);
+  data(json, cur);
+  return dataArrHist;
 }
                
-// invoke functions with desired parameters                               
-const runLive = () => convertUSD('ils', 'live');
-const runLoopHist = () => runLoopHistorical(19, 'ils');
+const curYear = () => new Date().getFullYear();
+
+// function loop historical currency data from 2001 and years going forward until base is reached, insert currency as second argument
+const runHistUSD = (base, cur) => {
+  if (base > curYear() - 2001) {
+     return console.log(`Base higher than current year`);
+  }
+  for (let i = 0; i < base; i++) {
+    getHistUSD(cur, 2001 + i + '-01-01');
+  }  
+  console.log(dataArrHist);
+  // insertData(dataArrHist);
+}
+               
+// call functions with correct parameters                               
+const runLive = () => getLiveUSD('ils');
+const runHist = () => runHistUSD(2, 'ils');
 
 // function to insert historical data in sheet
 const insertData = (data) => {
@@ -58,7 +74,5 @@ const insertData = (data) => {
   let lastRow = results.getLastRow() + 1;
   console.log(dataArr[0]);
   results.getRange(lastRow, 1, dataArr.length, 4).setValues(dataArr);   
-}              
-
- 
-              
+}          
+                           
