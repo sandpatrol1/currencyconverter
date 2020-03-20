@@ -22,7 +22,6 @@ const getLiveUSD = (cur) => {
   const response = UrlFetchApp.fetch(baseCall + 'live' +'?' + 'access_key=' + apiKey + '&currencies=' + cur);
   const json = JSON.parse(response);
   data(json, cur);
-  console.log(dataArrLive);
   return dataArrLive;
 }
 
@@ -54,15 +53,14 @@ const runHistUSD = (base, cur) => {
   for (let i = 0; i < base; i++) {
     getHistUSD(cur, 2001 + i + '-01-01');
   }  
-  console.log(dataArrHist);
-  // insertData(dataArrHist);
+  insertData(dataArrHist);
 }
                
 // call functions with correct parameters                               
 const runLive = () => getLiveUSD('ils');
 const runHist = () => runHistUSD(2, 'ils');
 
-// function to insert historical data in sheet
+// function to insert historical data in sheet - remember to create sheet named #data
 const insertData = (data) => {
   const ss = SpreadsheetApp.getActive();
   const results = ss.getSheetByName('#data');
